@@ -87,7 +87,50 @@ def run_reconstruction(sfm_dir: Path,
             (sfm_dir / filename).unlink()
         shutil.move(
             str(models_path / str(largest_index) / filename), str(sfm_dir))
+    
     return reconstructions[largest_index]
+
+def run_dense(
+        sfm_dir: Path,
+        database_path: Path,
+        image_dir: Path,
+        verbose: bool = False,
+        undistort_options: Optional[Dict[str, Any]] = None,
+        patch_match_options: Optional[Dict[str, Any]] = None,
+        stereo_fusion_options: Optional[Dict[str, Any]] = None,
+):
+    if undistort_options is None:
+        undistort_options = {}
+
+    if patch_match_options is None:
+        patch_match_options = {}
+
+    if stereo_fusion_options is None:
+        stereo_fusion_options = {}
+    
+    undistort_opts = pycolmap.UndistortCameraOptions()
+    patch_match_opts = pycolmap.PatchMatchOptions()
+    stereo_fusion_opts = pycolmap.StereoFusionOptions()
+
+    for k, v in undistort_options.items():
+        if hasattr(undistort_opts, k):
+            setattr(undistort_opts, k, v)
+    
+    for k, v in patch_match_options.items():
+        if hasattr(patch_match_opts, k):
+            setattr(patch_match_opts, k, v)
+
+    for k, v in stereo_fusion_options.items():
+        if hasattr(stereo_fusion_opts, k):
+            setattr(stereo_fusion_opts, k, v)
+    
+    # dense reconstruction
+    logger.info("Starting dense reconstruction")
+    mvs_path = sfm_dir / "mvs"
+    pycolmap.undistort_images(mvs_path, sfm_dir, image_dir, undistort_options=undistort_opts)
+    pycolmap.patch_match_stereo(mvs_path, options=patch_match_opts)  # requires compilation with CUDA
+    pycolmap.stereo_fusion(mvs_path / "dense.ply", mvs_path, options=stereo_fusion_opts)
+    logger.info("End dense reconstruction")
 
 
 def main(sfm_dir: Path,
@@ -100,8 +143,12 @@ def main(sfm_dir: Path,
          skip_geometric_verification: bool = False,
          min_match_score: Optional[float] = None,
          image_list: Optional[List[str]] = None,
+         dense_reconstruction: bool = True,
          image_options: Optional[Dict[str, Any]] = None,
          mapper_options: Optional[Dict[str, Any]] = None,
+         undistort_options: Optional[Dict[str, Any]] = None,
+         patch_match_options: Optional[Dict[str, Any]] = None,
+         stereo_fusion_options: Optional[Dict[str, Any]] = None,
          ) -> pycolmap.Reconstruction:
 
     assert features.exists(), features
@@ -121,6 +168,10 @@ def main(sfm_dir: Path,
         estimation_and_geometric_verification(database, pairs, verbose)
     reconstruction = run_reconstruction(
         sfm_dir, database, image_dir, verbose, mapper_options)
+
+    if dense_reconstruction:
+        run_dense(sfm_dir, database, image_dir, undistort_options, patch_match_options, stereo_fusion_options)
+
     if reconstruction is not None:
         logger.info(f'Reconstruction statistics:\n{reconstruction.summary()}'
                     + f'\n\tnum_input_images = {len(image_ids)}')

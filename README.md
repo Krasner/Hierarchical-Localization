@@ -24,6 +24,8 @@ Build 3D maps with Structure-from-Motion and localize any Internet image right f
 
 `hloc` requires Python >=3.7 and PyTorch >=1.1. Installing the package locally pulls the other dependencies:
 
+To enable pycolmap with CUDA build COLMAP and pycolmap from source!
+
 ```bash
 git clone --recursive https://github.com/cvg/Hierarchical-Localization/
 cd Hierarchical-Localization/
