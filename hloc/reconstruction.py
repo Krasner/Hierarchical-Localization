@@ -92,9 +92,7 @@ def run_reconstruction(sfm_dir: Path,
 
 def run_dense(
         sfm_dir: Path,
-        database_path: Path,
         image_dir: Path,
-        verbose: bool = False,
         undistort_options: Optional[Dict[str, Any]] = None,
         patch_match_options: Optional[Dict[str, Any]] = None,
         stereo_fusion_options: Optional[Dict[str, Any]] = None,
@@ -170,7 +168,13 @@ def main(sfm_dir: Path,
         sfm_dir, database, image_dir, verbose, mapper_options)
 
     if dense_reconstruction:
-        run_dense(sfm_dir, database, image_dir, undistort_options, patch_match_options, stereo_fusion_options)
+        run_dense(
+            sfm_dir, 
+            image_dir, 
+            undistort_options=undistort_options, 
+            patch_match_options=patch_match_options, 
+            stereo_fusion_options=stereo_fusion_options
+        )
 
     if reconstruction is not None:
         logger.info(f'Reconstruction statistics:\n{reconstruction.summary()}'
