@@ -141,7 +141,7 @@ def main(sfm_dir: Path,
          skip_geometric_verification: bool = False,
          min_match_score: Optional[float] = None,
          image_list: Optional[List[str]] = None,
-         dense_reconstruction: bool = True,
+         dense_reconstruction: bool = False,
          image_options: Optional[Dict[str, Any]] = None,
          mapper_options: Optional[Dict[str, Any]] = None,
          undistort_options: Optional[Dict[str, Any]] = None,
@@ -167,13 +167,13 @@ def main(sfm_dir: Path,
     reconstruction = run_reconstruction(
         sfm_dir, database, image_dir, verbose, mapper_options)
 
-    if dense_reconstruction:
+    if dense_reconstruction and pycolmap.has_cuda:
         run_dense(
             sfm_dir, 
             image_dir, 
             undistort_options=undistort_options, 
             patch_match_options=patch_match_options, 
-            stereo_fusion_options=stereo_fusion_options
+            stereo_fusion_options=stereo_fusion_options,
         )
 
     if reconstruction is not None:
