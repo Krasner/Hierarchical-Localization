@@ -13,7 +13,7 @@ def vector_to_cross_product_matrix(v):
         [-v[1], v[0], 0]
     ])
 
-
+"""
 def compute_epipolar_errors(qvec_r2t, tvec_r2t, p2d_r, p2d_t):
     T_r2t = pose_matrix_from_qvec_tvec(qvec_r2t, tvec_r2t)
     # Compute errors in normalized plane to avoid distortion.
@@ -27,6 +27,16 @@ def compute_epipolar_errors(qvec_r2t, tvec_r2t, p2d_r, p2d_t):
         np.abs(np.sum(to_homogeneous(p2d_t) * l2d_r2t, axis=1)) /
         np.linalg.norm(l2d_r2t[:, : 2], axis=1))
     return E, errors_r, errors_t
+"""
+
+def compute_epipolar_errors(j_from_i: pycolmap.Rigid3d, p2d_i, p2d_j):
+    j_E_i = j_from_i.essential_matrix()
+    l2d_j = to_homogeneous(p2d_i) @ j_E_i.T
+    l2d_i = to_homogeneous(p2d_j) @ j_E_i
+    dist = np.abs(np.sum(to_homogeneous(p2d_i) * l2d_i, axis=1))
+    errors_i = dist / np.linalg.norm(l2d_i[:, :2], axis=1)
+    errors_j = dist / np.linalg.norm(l2d_j[:, :2], axis=1)
+    return errors_i, errors_j
 
 
 def pose_matrix_from_qvec_tvec(qvec, tvec):

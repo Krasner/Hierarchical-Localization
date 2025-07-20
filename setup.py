@@ -16,7 +16,7 @@ setup(
     version=version,
     packages=find_packages(),
     python_requires='>=3.6',
-    install_requires=dependencies,
+    # install_requires=dependencies,
     author='Paul-Edouard Sarlin',
     description=description,
     long_description=readme,

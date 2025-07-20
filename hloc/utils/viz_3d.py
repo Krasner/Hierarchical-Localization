@@ -128,12 +128,17 @@ def plot_camera_colmap(
         name: Optional[str] = None,
         **kwargs):
     """Plot a camera frustum from PyCOLMAP objects"""
+    world_t_camera = image.cam_from_world.inverse()
+
     plot_camera(
         fig,
-        image.rotmat().T,
-        image.projection_center(),
+        world_t_camera.rotation.matrix(),
+        world_t_camera.translation,
+        # image.rotmat().T,
+        # image.projection_center(),
         camera.calibration_matrix(),
         name=name or str(image.image_id),
+        text=str(image),
         **kwargs)
 
 

@@ -43,7 +43,9 @@ def create_db_from_model(reconstruction: pycolmap.Reconstruction,
 
     for i, camera in reconstruction.cameras.items():
         db.add_camera(
-            camera.model_id, camera.width, camera.height, camera.params,
+            # camera.model_id, 
+            camera.model.value,
+            camera.width, camera.height, camera.params,
             camera_id=i, prior_focal_length=True)
 
     for i, image in reconstruction.images.items():
@@ -108,7 +110,9 @@ def estimation_and_geometric_verification(database_path: Path,
         with pycolmap.ostream():
             pycolmap.verify_matches(
                 database_path, pairs_path,
-                max_num_trials=20000, min_inlier_ratio=0.1)
+                options=dict(ransac=dict(max_num_trials=20000, min_inlier_ratio=0.1)),
+            )
+                # max_num_trials=20000, min_inlier_ratio=0.1)
 
 
 def geometric_verification(image_ids: Dict[str, int],
@@ -133,7 +137,8 @@ def geometric_verification(image_ids: Dict[str, int],
             features_path, name0, return_uncertainty=True)
         noise0 = 1.0 if noise0 is None else noise0
         if len(kps0) > 0:
-            kps0 = np.stack(cam0.image_to_world(kps0))
+            # kps0 = np.stack(cam0.image_to_world(kps0))
+            kps0 = np.stack(cam0.cam_from_img(kps0))
         else:
             kps0 = np.zeros((0, 2))
 
@@ -145,7 +150,8 @@ def geometric_verification(image_ids: Dict[str, int],
                 features_path, name1, return_uncertainty=True)
             noise1 = 1.0 if noise1 is None else noise1
             if len(kps1) > 0:
-                kps1 = np.stack(cam1.image_to_world(kps1))
+                # kps1 = np.stack(cam1.image_to_world(kps1))
+                kps1 = np.stack(cam1.cam_from_img(kps1))
             else:
                 kps1 = np.zeros((0, 2))
 
@@ -158,7 +164,18 @@ def geometric_verification(image_ids: Dict[str, int],
             if matches.shape[0] == 0:
                 db.add_two_view_geometry(id0, id1, matches)
                 continue
+            
+            cam1_from_cam0 = image1.cam_from_world * image0.cam_from_world.inverse()
+            errors0, errors1 = compute_epipolar_errors(
+                cam1_from_cam0, kps0[matches[:, 0]], kps1[matches[:, 1]]
 
+
+            )
+            valid_matches = np.logical_and(
+                errors0 <= cam0.cam_from_img_threshold(noise0 * max_error),
+                errors1 <= cam1.cam_from_img_threshold(noise1 * max_error),
+            )
+            """
             qvec_01, tvec_01 = pycolmap.relative_pose(
                 image0.qvec, image0.tvec, image1.qvec, image1.tvec)
             _, errors0, errors1 = compute_epipolar_errors(
@@ -166,6 +183,7 @@ def geometric_verification(image_ids: Dict[str, int],
             valid_matches = np.logical_and(
                 errors0 <= max_error * noise0 / cam0.mean_focal_length(),
                 errors1 <= max_error * noise1 / cam1.mean_focal_length())
+            """
             # TODO: We could also add E to the database, but we need
             # to reverse the transformations if id0 > id1 in utils/database.py.
             db.add_two_view_geometry(id0, id1, matches[valid_matches, :])
